@@ -673,6 +673,18 @@ section.card.unlocked .lock-cover{display:none}
   <section class="card" id="pagoInicio">
     <p class="cond-kicker" data-i18n="cond.kicker">Antes de comenzar</p>
     <h2 class="cond-title" data-i18n="cond.title">Lee estas condiciones</h2>
+
+    <div class="nota" id="accInstBox" style="margin:16px 0;border:2px solid #c9a227">
+      <p style="margin:0 0 6px"><strong id="accInstTitle">¿Tu institución te dio una clave?</strong></p>
+      <p style="margin:0 0 10px" id="accInstText">Si vienes de una escuela u organización aliada, escribe aquí la clave que te dieron: tu acceso es gratis, para que pruebes la plataforma completa.</p>
+      <div id="accInstForm" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input id="accInstInput" type="text" autocomplete="off" placeholder="Clave de tu institución" style="flex:1;min-width:200px;padding:10px">
+        <button id="accInstBtn" type="button" class="btn btn-red">Activar acceso gratis</button>
+      </div>
+      <p id="accInstMsg" style="margin:8px 0 0"></p>
+      <p id="accInstActive" style="margin:0;display:none">✓ <span id="accInstActiveTxt">Acceso gratis activo gracias a:</span> <strong id="accInstName"></strong> · <a href="#" id="accInstOut">Quitar clave</a></p>
+    </div>
+
     <ol class="cond-list">
       <li class="cond-item">
         <span class="cond-num" aria-hidden="true">1</span>
@@ -6629,5 +6641,97 @@ conectarPanelesCorreo();
    con toda la plataforma ya construida, para restaurar su trabajo. */
 iniciarGuardadoPersonal();
 </script>
+
+<script>
+(function(){
+  var CLAVES = {"VE-LIBRO":"VE International","MDC-LIBRO":"Miami Dade College","MDPLS-LIBRO":"Miami-Dade Public Library System"};
+  var KEY = "armaTuLibroAcceso";
+  var en = false;
+  try { en = (localStorage.getItem("armaTuLibroIdioma") === "en"); } catch(e) {}
+  var T = en ? {
+    title: "Did your institution give you a code?",
+    text: "If you come from a partner school or organization, enter the code they gave you here: your access is free, so you can try the full platform.",
+    btn: "Activate free access",
+    ph: "Your institution code",
+    ok: "Code accepted: your free access is active.",
+    err: "That code is not valid. Please check the spelling.",
+    active: "Free access active thanks to:",
+    out: "Remove code",
+    freeNote: "<strong>Free access through your institution:</strong> you pay nothing to use the platform or for the publishing guidance. Build your book and publish it!"
+  } : {
+    title: "¿Tu institución te dio una clave?",
+    text: "Si vienes de una escuela u organización aliada, escribe aquí la clave que te dieron: tu acceso es gratis, para que pruebes la plataforma completa.",
+    btn: "Activar acceso gratis",
+    ph: "Clave de tu institución",
+    ok: "Clave aceptada: tu acceso gratis está activo.",
+    err: "Esa clave no es válida. Revisa que esté bien escrita.",
+    active: "Acceso gratis activo gracias a:",
+    out: "Quitar clave",
+    freeNote: "<strong>Acceso gratis por tu institución:</strong> no pagas nada por usar la plataforma ni por el acompañamiento. ¡Arma tu libro y publícalo!"
+  };
+  function getAcc(){ try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e){ return null; } }
+  function notaPago(){
+    var p = document.querySelector('p[data-i18n-html="amz.cierre"]');
+    if(!p) return null;
+    return (p.closest ? p.closest('.nota') : null) || p.parentNode;
+  }
+  function apply(){
+    var acc = getAcc();
+    var nota = notaPago();
+    var free = document.getElementById('accInstFreeNote');
+    var form = document.getElementById('accInstForm');
+    var act = document.getElementById('accInstActive');
+    if(acc && CLAVES[acc.clave]){
+      if(nota) nota.style.display = 'none';
+      if(!free && nota){
+        free = document.createElement('div');
+        free.id = 'accInstFreeNote';
+        free.className = 'nota';
+        free.style.marginTop = '16px';
+        free.innerHTML = '<p style="margin:0">' + T.freeNote + '</p>';
+        nota.parentNode.insertBefore(free, nota.nextSibling);
+      }
+      if(free) free.style.display = '';
+      if(form) form.style.display = 'none';
+      if(act){ act.style.display = ''; document.getElementById('accInstName').textContent = CLAVES[acc.clave]; }
+    } else {
+      if(nota) nota.style.display = '';
+      if(free) free.style.display = 'none';
+      if(form) form.style.display = 'flex';
+      if(act) act.style.display = 'none';
+    }
+  }
+  function init(){
+    var box = document.getElementById('accInstBox');
+    if(!box) return;
+    document.getElementById('accInstTitle').textContent = T.title;
+    document.getElementById('accInstText').textContent = T.text;
+    document.getElementById('accInstBtn').textContent = T.btn;
+    document.getElementById('accInstInput').placeholder = T.ph;
+    document.getElementById('accInstActiveTxt').textContent = T.active;
+    document.getElementById('accInstOut').textContent = T.out;
+    apply();
+    document.getElementById('accInstBtn').addEventListener('click', function(){
+      var v = document.getElementById('accInstInput').value.trim().toUpperCase();
+      var msg = document.getElementById('accInstMsg');
+      if(CLAVES[v]){
+        try { localStorage.setItem(KEY, JSON.stringify({clave: v})); } catch(e) {}
+        msg.textContent = T.ok;
+        apply();
+      } else {
+        msg.textContent = T.err;
+      }
+    });
+    document.getElementById('accInstOut').addEventListener('click', function(ev){
+      ev.preventDefault();
+      try { localStorage.removeItem(KEY); } catch(e) {}
+      document.getElementById('accInstMsg').textContent = '';
+      apply();
+    });
+  }
+  if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
+})();
+</script>
+
 </body>
 </html>
